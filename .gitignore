@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Generated files
+generated_song.txt
+
+# Adapters / model weights
+adapters/*.safetensors
+adapters/model.safetensors*
+adapters/tokenizer.json
+adapters/tokenizer_config.json
+adapters/config.json
+adapters/chat_template.jinja
+
+# Training checkpoints / LoRA artifacts
+data/qwen_makulatura_lora.zip
+data/mlx_dataset/
+data/*.jsonl
+data/*.txt
+
+
+# Datasets / preprocessing outputs
+preprocessed/__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
