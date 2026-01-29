@@ -33,3 +33,7 @@ preprocessed/__pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Virtual environments
+.venv/
+**/.venv/
