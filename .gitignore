@@ -37,3 +37,6 @@ Thumbs.db
 # Virtual environments
 .venv/
 **/.venv/main.ipynb
+
+# Local docs
+CLAUDE.md
