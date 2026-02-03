@@ -35,6 +35,9 @@ BLOCK_RE = re.compile(
     r"(?s)(<(?P<tag>[A-Z_]+)\s+[^>]*>\n.*?\n</(?P=tag)>)"
 )
 
+# --- Добавлено: Регулярка для поиска спикера ---
+SPEAKER_RE = re.compile(r'speaker=["\']?(?P<name>\w+)["\']?')
+
 def load_canonical() -> List[Dict]:
     items = []
     with IN_PATH.open("r", encoding="utf-8") as f:
@@ -50,11 +53,17 @@ def extract_blocks(canonical_text: str) -> List[str]:
     blocks = [m.group(1).strip() for m in BLOCK_RE.finditer(canonical_text)]
     return blocks
 
+# --- Добавлено: Функция определения спикера из текста блока ---
+def get_speaker_from_block(block_text: str) -> str:
+    """Возвращает имя спикера (alekhin, speransky, group) или None, если тега нет"""
+    match = SPEAKER_RE.search(block_text)
+    if match:
+        return match.group("name")
+    return "speransky" # Дефолт, если вдруг тег потерялся
+
 def pick_theme(title: str, rng: random.Random) -> str:
-    # мягко: часть тем — из списка, часть — "по мотивам названия"
     if rng.random() < 0.55:
         return rng.choice(TOPICS)
-    # "по мотивам" названия: уберём перевод в скобках
     base = re.sub(r"\s*\([^)]*\)\s*$", "", title).strip()
     return base if base else rng.choice(TOPICS)
 
@@ -83,15 +92,19 @@ def task_next_section(item: Dict, rng: random.Random, context_blocks: int = 2) -
     if len(blocks) < 2:
         return None
 
-    i = rng.randint(1, len(blocks) - 1)  # целевая секция blocks[i]
+    i = rng.randint(1, len(blocks) - 1)
     prefix = blocks[max(0, i - context_blocks):i]
     target = blocks[i].strip()
+
+    # --- ИЗМЕНЕНИЕ: Определяем спикера и добавляем в промпт ---
+    target_speaker = get_speaker_from_block(target)
 
     theme = pick_theme(item.get("title", ""), rng)
     user = (
         "Продолжи песню в стиле группы «Макулатура».\n"
         f"Тема: {theme}\n"
-        "Ниже приведён контекст (последние секции). Напиши СЛЕДУЮЩУЮ секцию полностью.\n"
+        "Ниже приведён контекст (последние секции). \n"
+        f"Напиши СЛЕДУЮЩУЮ секцию. Обязательное требование: голос = {target_speaker}.\n"
         "Верни ровно один блок секции с тегами.\n\n"
         "КОНТЕКСТ:\n"
         + "\n\n".join(prefix)
@@ -105,11 +118,14 @@ def task_chorus_only(item: Dict, rng: random.Random) -> Dict | None:
         return None
     target = rng.choice(choruses).strip()
 
+    # --- ИЗМЕНЕНИЕ: Определяем спикера и добавляем в промпт ---
+    target_speaker = get_speaker_from_block(target)
+
     theme = pick_theme(item.get("title", ""), rng)
-    # если в таргете уже есть speaker=..., мы просим вернуть один блок CHORUS с этим спикером
     user = (
         "Напиши один припев (CHORUS) в стиле группы «Макулатура».\n"
         f"Тема: {theme}\n"
+        f"Голос: {target_speaker}\n"
         "Верни ровно один блок <CHORUS ...>...</CHORUS> без пояснений."
     )
     return mk_chat_example(user, target)
