@@ -105,8 +105,8 @@
 data/                  # данные и датасеты
 parser/                # парсинг текстов
 preprocessed/          # очистка и нормализация
-adapters/              # LoRA-адаптеры и конфиги
+adapters/              # LoRA-адаптеры и конфиги (v.1)
 generate_sections.py   # генерация секций песен
-lora_qwen.ipynb        # обучение в Colab
+lora_qwen_м3.ipynb     # обучение в Colab
 post_filter.py         # постобработка генерации
 ```
