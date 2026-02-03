@@ -40,3 +40,7 @@ Thumbs.db
 
 # Local docs
 CLAUDE.md
+
+# notebooks
+/notebooks
+main.ipynb
