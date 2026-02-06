@@ -160,8 +160,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--theme", required=True)
     ap.add_argument("--structure", required=True, help='Напр: "VERSE(speransky) > CHORUS(alekhin) > VERSE(speransky) > CHORUS(alekhin) > OUTRO(alekhin)"')
-    ap.add_argument("--model", default="mlx-community/Llama-3.2-3B-Instruct-4bit")
-    ap.add_argument("--adapter_dir", default="adapters")
+    ap.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--adapter_dir", default="adapters/qwen_makulatura_lora")
 
     ap.add_argument("--max_tokens_section", type=int, default=260)
     ap.add_argument("--temp", type=float, default=0.8)

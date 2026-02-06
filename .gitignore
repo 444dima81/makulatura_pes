@@ -13,6 +13,7 @@ __pycache__/
 generated_song.txt
 
 # Adapters / model weights
+adapters/qwen_makulatura_lora/
 adapters/*.safetensors
 adapters/model.safetensors*
 adapters/tokenizer.json
@@ -21,7 +22,7 @@ adapters/config.json
 adapters/chat_template.jinja
 
 # Training checkpoints / LoRA artifacts
-data/qwen_makulatura_lora.zip
+*.zip
 data/mlx_dataset/
 data/*.jsonl
 data/*.txt
