@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -137,7 +138,6 @@ def score_section(text: str) -> float:
     total_letters = max(1, cyr + lat)
     cyr_ratio = cyr / total_letters
 
-    from collections import Counter
     cnt = Counter(content)
     reps = sorted(cnt.values(), reverse=True)
     max_rep = reps[0] if reps else 1
@@ -160,11 +160,77 @@ def score_section(text: str) -> float:
     score += 2.0 * uniq_line_ratio
 
     # жёсткие штрафы за лупы
-    score -= 2.0 * max(0, max_rep - 2)
+    score -= 4.0 * max(0, max_rep - 2)
     score -= 0.8 * max(0, top3_rep_sum - 8)   # если 3 строки повторяются суммарно слишком часто
     score -= 3.5 * gram_penalty
+
+    # штраф за очень низкую уникальность строк (луп из 3 строк × 3 = 0.33)
+    if uniq_line_ratio < 0.4:
+        score -= 5.0
+
+    # штраф за прозаичный стиль (длинные объяснительные предложения)
+    if avg_len > 20:
+        score -= 2.0 * (avg_len - 20)
 
     if lat > 0:
         score -= 10.0
 
     return score
+
+
+def _get_content_lines(text: str) -> List[str]:
+    """Извлекает строки контента (без тегов) из текста секции."""
+    return [
+        ln.strip()
+        for ln in text.splitlines()
+        if ln.strip() and not _is_tag_line(ln.strip())
+    ]
+
+
+def _ngrams(words: List[str], n: int) -> List[str]:
+    return [" ".join(words[i : i + n]) for i in range(max(0, len(words) - n + 1))]
+
+
+def score_section_in_context(text: str, prev_sections_text: str) -> float:
+    """Скоринг секции с учётом ранее сгенерированных секций.
+
+    Базовый score_section оценивает секцию изолированно.
+    Эта функция добавляет штрафы за копипаст из предыдущих секций:
+      - пересечение строк (Jaccard на уровне строк)
+      - пересечение 4-грамм
+    """
+    base = score_section(text)
+    if not prev_sections_text or not prev_sections_text.strip():
+        return base
+
+    cur_lines = _get_content_lines(text)
+    prev_lines = _get_content_lines(prev_sections_text)
+
+    if not cur_lines or not prev_lines:
+        return base
+
+    # --- штраф за совпадение строк ---
+    cur_set = set(cur_lines)
+    prev_set = set(prev_lines)
+    overlap = cur_set & prev_set
+    if cur_set:
+        overlap_ratio = len(overlap) / len(cur_set)
+    else:
+        overlap_ratio = 0.0
+    # жёсткий штраф: если >30% строк скопированы — сильный минус
+    if overlap_ratio > 0.0:
+        base -= 8.0 * overlap_ratio
+
+    # --- штраф за пересечение 4-грамм ---
+    cur_words = " ".join(cur_lines).split()
+    prev_words = " ".join(prev_lines).split()
+    cur_4g = set(_ngrams(cur_words, 4))
+    prev_4g = set(_ngrams(prev_words, 4))
+    if cur_4g:
+        gram_overlap = len(cur_4g & prev_4g) / len(cur_4g)
+    else:
+        gram_overlap = 0.0
+    if gram_overlap > 0.0:
+        base -= 6.0 * gram_overlap
+
+    return base

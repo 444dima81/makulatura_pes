@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict, Tuple
 
-from post_filter import clean_section_text, score_section, FilterConfig
+from post_filter import clean_section_text, score_section, score_section_in_context, FilterConfig
 
 SYSTEM = """Ты — поэтический генератор песен в стиле группы «Макулатура».
 
@@ -12,6 +12,12 @@ SYSTEM = """Ты — поэтический генератор песен в с�
 - Избегай повторов одной строки более 2 раз подряд.
 - Каждая строка должна передавать образ, действие или состояние.
 - Не добавляй пояснений и комментариев, только текст секций.
+
+Стиль:
+- Строки короткие, насыщенные образами (обычно до 12-15 слов).
+- Используй метафоры, культурные отсылки, неожиданные сравнения.
+- Не пиши объяснениями и описаниями — пиши образами.
+- НИКОГДА не копируй и не пересказывай строки из контекста.
 
 Соблюдай структуру и теги секций (<VERSE>, <CHORUS>, <OUTRO>) и атрибут speaker (alekhin/speransky/group).
 """.strip()
@@ -85,17 +91,21 @@ def build_section_prompt(
         return (
             f"Тема: {theme}\n"
             f"{rules}\n"
+            "Не повторяй и не переписывай строки из контекста. Каждая строка должна быть новой.\n\n"
             "КОНТЕКСТ (предыдущие секции, чтобы продолжать связно):\n"
             f"{context.strip()}\n"
         )
     return f"Тема: {theme}\n{rules}\n"
 
 
-def choose_best_candidate(cands: List[str]) -> Tuple[str, float]:
+def choose_best_candidate(cands: List[str], context: str = "") -> Tuple[str, float]:
     best = ""
     best_score = -1e18
     for c in cands:
-        s = score_section(c)
+        if context:
+            s = score_section_in_context(c, context)
+        else:
+            s = score_section(c)
         if s > best_score:
             best_score = s
             best = c
@@ -142,7 +152,7 @@ def generate_section_with_retries(
         # но скоринг его утопит
         candidates.append(cleaned)
 
-    best, _ = choose_best_candidate(candidates)
+    best, _ = choose_best_candidate(candidates, context=context)
     return best.strip()
 
 
@@ -154,8 +164,8 @@ def main():
     ap.add_argument("--adapter_dir", default="adapters")
 
     ap.add_argument("--max_tokens_section", type=int, default=260)
-    ap.add_argument("--temp", type=float, default=0.7)
-    ap.add_argument("--top_p", type=float, default=0.85)
+    ap.add_argument("--temp", type=float, default=0.8)
+    ap.add_argument("--top_p", type=float, default=0.9)
     ap.add_argument("--top_k", type=int, default=40)
     ap.add_argument("--min_p", type=float, default=0.06)
     ap.add_argument("--seed", type=int, default=42)
