@@ -45,3 +45,10 @@ CLAUDE.md
 # notebooks
 /notebooks
 main.ipynb
+
+# eval artifacts derived from gitignored corpus / local runs (regenerable)
+eval/reference/
+eval/holdout_ids.txt
+eval/judge_runs/*.json
+eval/judge_bundle.md
+eval/last_run.json
