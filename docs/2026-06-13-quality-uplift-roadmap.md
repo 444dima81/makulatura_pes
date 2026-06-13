@@ -24,7 +24,7 @@
 | ID | Задача | Tier | Зависит от |
 |----|--------|------|-----------|
 | **T01** | Eval harness + reference set | Medium | — |
-| **T02** | Fixed-inference baseline (без переобучения) | Small | T01 |
+| **T02** | Base Vikhr baseline (MLX) | Medium | T01 |
 | **T03** | Data clean + fix | Small/Medium | T01 |
 | **T04** | Retrain LoRA на Vikhr-7B (MLX, локально) | Medium | T01, T03 |
 | **T05** | Serve в Ollama (GGUF + Modelfile) | Small/Medium | T04 |
@@ -36,22 +36,23 @@
 - **Soft-метрики** (judge, N≥3, читаем транскрипты): грамматичность / связность / образность / «похоже на Макулатуру», рубрика 1–5.
 - Judge по умолчанию: Claude по рубрике с чтением транскриптов (без API-ключа).
 
-### T02 — Fixed-inference baseline
-Чинит self-inflicted wounds на ТЕКУЩЕМ адаптере, без переобучения. Это честная точка отсчёта и тест «нужно ли вообще переобучать».
-- Синхронизировать system prompt train↔inference.
-- ~~Убрать «короткие строки»~~ — отменено (T01 показал: короткие строки = реальный стиль). Вместо этого главные рычаги ниже.
-- Sampling против циклов (дефект №1/2): `repetition_penalty`, тюнинг temp/min_p.
-- Фикс битых/вложенных тегов (дефект №3): валидатор структуры на выходе.
-- Замер по T01.
+### T02 — Base Vikhr baseline (MLX)
+**REV (T02 research):** текущий Qwen-адаптер — PEFT-формат, `mlx_lm` его не грузит; `generated_song.txt` — выход старого Llama. Legacy-адаптер **списан**, стандарт = **MLX train+serve** (нативный `--adapter-path`, без PEFT-конвертаций). Baseline = базовый Vikhr-7B (pre-finetune).
+- Запустить base Vikhr-7B (4-bit MLX) через `mlx_lm`, `--adapter_dir` опционален.
+- Единый SYSTEM-промпт (он же тренировочный в T04).
+- Anti-rep (дефект №1/2): **post-hoc rejection** — в `mlx_lm` 0.31.3 НЕТ `repetition-penalty` (flag-check); + тюнинг min-p/temp/XTC.
+- Валидатор битых/вложенных тегов (дефект №3): `broken_total>0` → чинить/регенерить.
+- Замер по T01 → точка отсчёта для A/B в T04.
 
 ### T03 — Data clean + fix
 - **Аудит парсинга** (`normalize_songs.py`, `make_canonical_text.py`): на выборке песен сверить с оригиналом на Genius — корректность разбивки на секции, атрибуцию спикеров, line-stitching.
 - Dedup повторяющихся куплетов/хоров, фикс битого line-stitching (осиротевшие запятые), привести system prompt датасета к финальному, augmentation ради сигнала на 189 песнях.
 
 ### T04 — Retrain LoRA на Vikhr-7B (MLX)
-- База: Vikhr-7B (русскоязычная, есть в mlx-community) — бьёт в дефект №1.
+- База: Vikhr-7B (4-bit MLX, та же, что в T02 baseline) — бьёт в дефект №1.
+- Обучение **через `mlx_lm.lora`** → MLX-формат адаптера → нативный запуск `--adapter-path` без конвертаций (урок legacy-адаптера: Colab/PEFT = несовместимый формат).
 - Гиперпараметры под крошечный корпус: следить за valid loss, не пережечь эпохами (overfit), подобрать rank.
-- Замер по T01 vs T02, N≥3, distribution + per-query drilldown (eval-discipline rule 9).
+- Замер по T01 vs T02 baseline, N≥3, distribution + per-query drilldown (eval-discipline rule 9).
 
 ### T05 — Serve в Ollama
 - Экспорт fused → GGUF + Modelfile (sampling из T02). Сравнить локальный inference с MLX-путём.

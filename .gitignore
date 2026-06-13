@@ -52,3 +52,4 @@ eval/holdout_ids.txt
 eval/judge_runs/*.json
 eval/judge_bundle.md
 eval/last_run.json
+eval/out/

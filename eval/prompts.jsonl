@@ -1,0 +1,5 @@
+{"id": "p1", "theme": "зима и пустые улицы", "structure": "VERSE(speransky) > CHORUS(alekhin) > VERSE(speransky) > CHORUS(alekhin) > OUTRO(alekhin)"}
+{"id": "p2", "theme": "тревога и бессонница", "structure": "VERSE(alekhin) > CHORUS(alekhin) > VERSE(speransky) > CHORUS(speransky)"}
+{"id": "p3", "theme": "память и вина", "structure": "VERSE(speransky) > VERSE(alekhin) > CHORUS(group)"}
+{"id": "p4", "theme": "алкоголь и пустота", "structure": "INTRO(alekhin) > VERSE(speransky) > CHORUS(alekhin) > VERSE(speransky) > OUTRO(group)"}
+{"id": "p5", "theme": "любовь как болезнь", "structure": "VERSE(alekhin) > CHORUS(speransky) > VERSE(alekhin) > CHORUS(speransky)"}
