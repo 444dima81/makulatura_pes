@@ -15,6 +15,10 @@ generated_song.txt
 # Local-only continuity doc (kept on disk, not tracked)
 docs/HANDOFF.md
 
+# T06 RPST rhyme metric — isolated env + vendored tool + weights (not tracked)
+.venv-rpst/
+vendor/
+
 # Adapters / model weights
 adapters/qwen_makulatura_lora/
 adapters/qvikhr3_makulatura_lora/
