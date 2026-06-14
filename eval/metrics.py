@@ -19,6 +19,7 @@ from post_filter import (  # noqa: E402
     _is_tag_line,
     _count_letters,
     _ngrams,
+    near_repetition,
 )
 
 
@@ -156,6 +157,7 @@ def all_hard_metrics(
         "cyrillic_ratio": round(cyrillic_ratio(text), 3),
         "line_repetition": round(line_repetition_rate(text), 3),
         "gram_repetition": round(gram_repetition_rate(text), 3),
+        "near_rep": near_repetition(text),
         "tags": tag_health(text),
         "line_length": line_length_stats(text),
         "corpus_overlap": corpus_overlap(text, line_set, gram_set),

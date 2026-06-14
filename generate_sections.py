@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Tuple
 
-from post_filter import clean_section_text, score_section, score_section_in_context, FilterConfig
+from post_filter import clean_section_text, score_section, score_section_in_context, FilterConfig, near_repetition
 
 # repo root on path so eval.* is importable (reuse T01 metrics, no duplication)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -118,6 +118,10 @@ def section_ok(text: str) -> bool:
     if line_repetition_rate(text) > 0.15:
         return False
     if gram_repetition_rate(text) > 0.20:
+        return False
+    # near-rep (near-dup / анафора / intra-loop) — класс, который line_rep пропускает.
+    # Порог 0.30: reference-хвост ~0.1, филлер-секции 0.3-0.6 (калибровка T05).
+    if near_repetition(text)["near_rep"] > 0.30:
         return False
     return True
 

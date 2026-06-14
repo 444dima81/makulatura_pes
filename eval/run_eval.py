@@ -76,12 +76,24 @@ def corpus_line_length(corpus_texts: List[str]) -> Dict[str, float]:
     }
 
 
+COLS = [
+    "cyr", "line_rep", "gram_rep",
+    "near_rep", "near_dup", "anaph", "intra",
+    "broken_tags", "line_mean", "line_ov", "gram_ov",
+]
+
+
 def _flat(m: Dict) -> Dict[str, float]:
     """Pull scalar metrics out of the nested bundle for tabular display."""
+    nr = m["near_rep"]
     return {
         "cyr": m["cyrillic_ratio"],
         "line_rep": m["line_repetition"],
         "gram_rep": m["gram_repetition"],
+        "near_rep": nr["near_rep"],
+        "near_dup": nr["near_dup"],
+        "anaph": nr["anaphora"],
+        "intra": nr["intra_loop"],
         "broken_tags": m["tags"]["broken_total"],
         "line_mean": m["line_length"]["mean"],
         "line_ov": m["corpus_overlap"]["line_overlap"],
@@ -90,20 +102,18 @@ def _flat(m: Dict) -> Dict[str, float]:
 
 
 def print_table(rows: Dict[str, Dict[str, float]]):
-    cols = ["cyr", "line_rep", "gram_rep", "broken_tags", "line_mean", "line_ov", "gram_ov"]
     name_w = max([len(n) for n in rows] + [4])
-    header = "song".ljust(name_w) + "  " + "  ".join(c.rjust(11) for c in cols)
+    header = "song".ljust(name_w) + "  " + "  ".join(c.rjust(9) for c in COLS)
     print(header)
     print("-" * len(header))
     for name, vals in rows.items():
-        line = name.ljust(name_w) + "  " + "  ".join(f"{vals[c]:>11}" for c in cols)
+        line = name.ljust(name_w) + "  " + "  ".join(f"{vals[c]:>9}" for c in COLS)
         print(line)
 
 
 def aggregate(rows: Dict[str, Dict[str, float]]) -> Dict[str, str]:
-    cols = ["cyr", "line_rep", "gram_rep", "broken_tags", "line_mean", "line_ov", "gram_ov"]
     out = {}
-    for c in cols:
+    for c in COLS:
         vals = [r[c] for r in rows.values()]
         mean = statistics.mean(vals)
         std = statistics.pstdev(vals) if len(vals) > 1 else 0.0

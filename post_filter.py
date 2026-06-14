@@ -1,7 +1,7 @@
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 CYR = re.compile(r"[А-Яа-яЁё]")
 LAT = re.compile(r"[A-Za-z]")
@@ -163,6 +163,7 @@ def score_section(text: str) -> float:
     score -= 4.0 * max(0, max_rep - 2)
     score -= 0.8 * max(0, top3_rep_sum - 8)   # если 3 строки повторяются суммарно слишком часто
     score -= 3.5 * gram_penalty
+    score -= 6.0 * near_repetition(text)["near_rep"]   # near-dup / анафора / intra-loop филлер
 
     # штраф за очень низкую уникальность строк (луп из 3 строк × 3 = 0.33)
     if uniq_line_ratio < 0.4:
@@ -189,6 +190,81 @@ def _get_content_lines(text: str) -> List[str]:
 
 def _ngrams(words: List[str], n: int) -> List[str]:
     return [" ".join(words[i : i + n]) for i in range(max(0, len(words) - n + 1))]
+
+
+_WORD_SPLIT = re.compile(r"[^\w]+", re.UNICODE)
+
+
+def _norm_tokens(line: str) -> List[str]:
+    """Lowercase, split on non-word chars → tokens (Cyrillic-aware).
+    'Я не знаю,' и 'я не знаю' дают один и тот же список."""
+    return [t for t in _WORD_SPLIT.split(line.lower()) if t]
+
+
+def _has_intra_line_loop(tokens: List[str], min_block: int = 2) -> bool:
+    """True если внутри строки есть подряд повторённый блок токенов размера
+    >= min_block (напр. 'я не знаю я не знаю')."""
+    n = len(tokens)
+    for m in range(min_block, n // 2 + 1):
+        for i in range(0, n - 2 * m + 1):
+            if tokens[i : i + m] == tokens[i + m : i + 2 * m]:
+                return True
+    return False
+
+
+def near_repetition(
+    text: str,
+    jaccard: float = 0.6,
+    prefix_k: int = 2,
+    anaphora_min_group: int = 3,
+    intra_min_block: int = 2,
+) -> Dict[str, float]:
+    """Near-repetition / филлер-детектор — класс, который точечный line_rep ПРОПУСКАЕТ:
+      - near_dup  : строки-почти-дубли (token-Jaccard >= jaccard, НО не байт-в-байт —
+                    точные дубли = работа line_rep, часто легитимный припев)
+      - anaphora  : строки с общим зачином (первые prefix_k токенов) в группе
+                    размера >= anaphora_min_group
+      - intra_loop: строки с внутренним повторённым блоком токенов
+    Возвращает по-компонентные доли + near_rep = доля строк, помеченных ЛЮБЫМ.
+    Детерминирована. Переиспользуется run_eval (замер) и section_ok/score_section (gate)."""
+    lines = _get_content_lines(text)
+    n = len(lines)
+    if n == 0:
+        return {"near_dup": 0.0, "anaphora": 0.0, "intra_loop": 0.0, "near_rep": 0.0}
+    toks = [_norm_tokens(ln) for ln in lines]
+    sets = [set(t) for t in toks]
+
+    dup: set = set()
+    for i in range(n):
+        if not sets[i]:
+            continue
+        for j in range(i + 1, n):
+            if not sets[j] or lines[i] == lines[j]:
+                continue
+            inter = len(sets[i] & sets[j])
+            uni = len(sets[i] | sets[j])
+            if uni and inter / uni >= jaccard:
+                dup.add(i)
+                dup.add(j)
+
+    groups: Dict[Tuple[str, ...], List[int]] = {}
+    for i, t in enumerate(toks):
+        if len(t) >= prefix_k:
+            groups.setdefault(tuple(t[:prefix_k]), []).append(i)
+    ana: set = set()
+    for idxs in groups.values():
+        if len(idxs) >= anaphora_min_group:
+            ana.update(idxs)
+
+    intra = {i for i, t in enumerate(toks) if _has_intra_line_loop(t, intra_min_block)}
+
+    union = dup | ana | intra
+    return {
+        "near_dup": round(len(dup) / n, 3),
+        "anaphora": round(len(ana) / n, 3),
+        "intra_loop": round(len(intra) / n, 3),
+        "near_rep": round(len(union) / n, 3),
+    }
 
 
 def score_section_in_context(text: str, prev_sections_text: str) -> float:
