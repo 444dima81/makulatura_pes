@@ -9,20 +9,16 @@ import re
 from pathlib import Path
 from typing import List, Dict, Tuple
 
+from prompts import SYSTEM as SYSTEM_PROMPT  # single source of truth (train==inference)
+
 IN_PATH = Path("data/canonical_corpus.jsonl")
+HOLDOUT_PATH = Path("eval/holdout_ids.txt")
 OUT_DIR = Path("data/mlx_dataset")
 TRAIN_PATH = OUT_DIR / "train.jsonl"
 VALID_PATH = OUT_DIR / "valid.jsonl"
 
 RNG_SEED = 42
 VALID_RATIO = 0.05  # ~5%
-
-SYSTEM_PROMPT = (
-    "Ты — поэтический генератор песен в стиле группы «Макулатура». "
-    "Соблюдай структуру и теги секций (<VERSE>, <CHORUS>, <BRIDGE>, <INTRO>, <OUTRO>, <REFRAIN>, <HOOK>). "
-    "Сохраняй голос, заданный атрибутом speaker (alekhin/speransky/group). "
-    "Пиши по-русски. Не добавляй пояснений, только текст песен/секций в требуемом формате."
-)
 
 TOPICS = [
     "отчуждение в городе", "тревога и бессонница", "память и вина", "поездка и расставание",
@@ -47,6 +43,12 @@ def load_canonical() -> List[Dict]:
                 continue
             items.append(json.loads(line))
     return items
+
+def load_holdout() -> set:
+    """Song urls held out for eval (T01). MUST NOT leak into training data."""
+    if not HOLDOUT_PATH.exists():
+        return set()
+    return {ln.strip() for ln in HOLDOUT_PATH.read_text(encoding="utf-8").splitlines() if ln.strip()}
 
 def extract_blocks(canonical_text: str) -> List[str]:
     canonical_text = canonical_text.strip()
@@ -171,6 +173,12 @@ def main():
 
     rng = random.Random(RNG_SEED)
     items = load_canonical()
+
+    holdout = load_holdout()
+    if holdout:
+        before = len(items)
+        items = [it for it in items if it.get("url", "") not in holdout]
+        print(f"holdout excluded: {before - len(items)} песен ({len(holdout)} ids)")
 
     dataset = build_dataset(items, rng)
 

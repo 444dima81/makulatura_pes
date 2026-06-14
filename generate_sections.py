@@ -10,22 +10,7 @@ from post_filter import clean_section_text, score_section, score_section_in_cont
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from eval.metrics import tag_health, line_repetition_rate, gram_repetition_rate
 
-SYSTEM = """Ты — поэтический генератор песен в стиле группы «Макулатура».
-
-Правила:
-- Пиши по-русски, связно и образно.
-- Избегай повторов одной строки более 2 раз подряд.
-- Каждая строка должна передавать образ, действие или состояние.
-- Не добавляй пояснений и комментариев, только текст секций.
-
-Стиль:
-- Строки короткие, насыщенные образами (обычно до 12-15 слов).
-- Используй метафоры, культурные отсылки, неожиданные сравнения.
-- Не пиши объяснениями и описаниями — пиши образами.
-- НИКОГДА не копируй и не пересказывай строки из контекста.
-
-Соблюдай структуру и теги секций (<VERSE>, <CHORUS>, <OUTRO>) и атрибут speaker (alekhin/speransky/group).
-""".strip()
+from prompts import SYSTEM  # canonical prompt shared with make_instructions (train==inference)
 
 
 def run_mlx_generate(

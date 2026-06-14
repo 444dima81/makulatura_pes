@@ -118,63 +118,26 @@ def is_junk_line(line: str) -> bool:
     return False
 
 
+# Пунктуация, с которой строка НЕ может легитимно начинаться — это оторванное
+# скрейпом продолжение предыдущей строки (Genius рвёт длинные строки).
+_CONT_PUNCT = (",", ";", ":", ")", "»")
+
+
 def stitch_broken_lines(text: str) -> str:
     """
-    Склеивает разорванные переносами одиночные слова/знаки препинания:
-      "Несколько\nиждивенцев\n, но лишь" -> "Несколько иждивенцев, но лишь"
-    Делает это мягко, чтобы не испортить намеренные переносы строк.
+    Склеивает строки, ошибочно разорванные веб-скрейпом: строку, начинающуюся
+    с продолжающей пунктуации (',' ';' ':' ')' '»'), приклеивает к предыдущей.
+      "подавлял крик счастья\n, говорил о нас вскользь" -> одна строка.
+    Консервативно: НЕ склеивает одиночные короткие слова — у «Макулатуры»
+    короткие строки намеренны (это стиль), агрессивная склейка их бы испортила.
     """
-    lines = text.split("\n")
     out: List[str] = []
-    i = 0
-
-    def is_fragment(s: str) -> bool:
-        s = s.strip()
-        if not s:
-            return False
-        # одиночное слово / короткий фрагмент без пробелов
-        if len(s) <= 14 and " " not in s:
-            return True
-        # одиночный знак препинания
-        if s in {",", ".", "—", "-", "…", ":", ";", "!", "?", ")", "(", "»", "«"}:
-            return True
-        return False
-
-    while i < len(lines):
-        cur = lines[i].strip()
-        if not cur:
-            out.append("")
-            i += 1
-            continue
-
-        # если текущая строка короткая и следующая тоже короткая — склеиваем
-        if i + 1 < len(lines):
-            nxt = lines[i + 1].strip()
-            if nxt and is_fragment(nxt) and cur and not cur.endswith(("\n", "")):
-                # аккуратно склеим: пробел перед словом, без пробела перед пунктуацией
-                if nxt in {",", ".", "—", "-", "…", ":", ";", "!", "?", ")", "»"}:
-                    cur = cur + nxt
-                else:
-                    cur = cur + " " + nxt
-                i += 2
-
-                # также попробуем схлопнуть цепочку из нескольких фрагментов
-                while i < len(lines):
-                    nxt2 = lines[i].strip()
-                    if nxt2 and is_fragment(nxt2):
-                        if nxt2 in {",", ".", "—", "-", "…", ":", ";", "!", "?", ")", "»"}:
-                            cur = cur + nxt2
-                        else:
-                            cur = cur + " " + nxt2
-                        i += 1
-                    else:
-                        break
-
-                out.append(cur)
-                continue
-
-        out.append(cur)
-        i += 1
+    for ln in text.split("\n"):
+        s = ln.strip()
+        if s and s[0] in _CONT_PUNCT and out and out[-1].strip():
+            out[-1] = out[-1].rstrip() + s  # без пробела перед пунктуацией
+        else:
+            out.append(ln.strip())
 
     text2 = "\n".join(out)
     text2 = re.sub(r"\n{3,}", "\n\n", text2).strip()

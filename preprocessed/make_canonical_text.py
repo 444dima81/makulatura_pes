@@ -24,10 +24,17 @@ def sanitize_text(text: str) -> str:
     return t
 
 
+def _speaker(sec: Dict[str, Any]) -> str:
+    # "unknown" — внутренний sentinel normalize, не валидный speaker. Маппим в
+    # "group" (спикеры проекта: alekhin/speransky/group; group = оба/неизвестно).
+    sp = sec.get("speaker") or "group"
+    return "group" if sp == "unknown" else sp
+
+
 def section_label(sec: Dict[str, Any]) -> str:
     t = sec.get("type", "OTHER")
     idx = sec.get("index", None)
-    sp = sec.get("speaker", "unknown")
+    sp = _speaker(sec)
     if t == "VERSE" and idx is not None:
         return f"{t}{idx}({sp})"
     return f"{t}({sp})"
@@ -39,7 +46,7 @@ def build_structure_line(sections: List[Dict[str, Any]]) -> str:
 
 def tag_open(sec: Dict[str, Any]) -> str:
     t = sec.get("type", "OTHER")
-    sp = sec.get("speaker", "unknown")
+    sp = _speaker(sec)
     idx = sec.get("index", None)
 
     attrs = [f"speaker={sp}"]
