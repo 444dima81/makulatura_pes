@@ -1,0 +1,7 @@
+# LoRA hyperparameters for QVikhr-3-8B Makulatura finetune (T04).
+# rank/alpha(scale)/dropout — mlx_lm lora exposes these only via -c config.
+# Rest (model, iters, batch, lr, num-layers, mask-prompt) passed on CLI (CLI overrides).
+lora_parameters:
+  rank: 16
+  scale: 2.0       # alpha/rank = 32/16
+  dropout: 0.05
