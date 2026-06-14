@@ -19,6 +19,9 @@ docs/HANDOFF.md
 .venv-rpst/
 vendor/
 
+# Archived deprecated paths (moved here, kept on disk, out of git)
+archive/
+
 # Adapters / model weights
 adapters/qwen_makulatura_lora/
 adapters/qvikhr3_makulatura_lora/
