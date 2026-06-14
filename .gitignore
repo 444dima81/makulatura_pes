@@ -12,6 +12,9 @@ __pycache__/
 # Generated files
 generated_song.txt
 
+# Local-only continuity doc (kept on disk, not tracked)
+docs/HANDOFF.md
+
 # Adapters / model weights
 adapters/qwen_makulatura_lora/
 adapters/qvikhr3_makulatura_lora/
